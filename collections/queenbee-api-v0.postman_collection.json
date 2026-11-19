@@ -1,0 +1,44 @@
+{
+  "info": {
+    "name": "Queen Bee API v0 - Jour 1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    { "name": "GET /health", "request": { "method": "GET", "url": "http://localhost:3000/health" } },
+    { "name": "GET /api/hives", "request": { "method": "GET", "url": "http://localhost:3000/api/hives" } },
+    { "name": "GET /api/hives?site_id=SN-CASA", "request": { "method": "GET", "url": "http://localhost:3000/api/hives?site_id=SN-CASA" } },
+    { "name": "GET /api/hives/:id (200)", "request": { "method": "GET", "url": "http://localhost:3000/api/hives/SN-CASA-001" } },
+    { "name": "GET /api/hives/:id (404)", "request": { "method": "GET", "url": "http://localhost:3000/api/hives/XX-NOPE-999" } },
+    {
+      "name": "POST /api/hives/:id/measures (201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"hive_id\": \"SN-CASA-001\",\n  \"site_id\": \"SN-CASA\",\n  \"timestamp\": \"2026-10-31T10:00:00Z\",\n  \"weight_kg\": 36.84,\n  \"temp_internal_c\": 34.4,\n  \"humidity_pct\": 64,\n  \"battery_pct\": 88\n}" },
+        "url": "http://localhost:3000/api/hives/SN-CASA-001/measures"
+      }
+    },
+    {
+      "name": "POST /api/hives/:id/measures (400 hors plage 500kg)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"timestamp\": \"2026-10-31T10:00:00Z\",\n  \"weight_kg\": 500\n}" },
+        "url": "http://localhost:3000/api/hives/SN-CASA-001/measures"
+      }
+    },
+    { "name": "GET /api/hives/:id/measures (200)", "request": { "method": "GET", "url": "http://localhost:3000/api/hives/SN-CASA-001/measures?limit=10&offset=0" } },
+    { "name": "GET /api/hives/:id/measures (400 limit=0)", "request": { "method": "GET", "url": "http://localhost:3000/api/hives/SN-CASA-001/measures?limit=0" } },
+    {
+      "name": "POST /api/hives/:id/inspections (201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{$guid}}\",\n  \"inspected_at\": \"2026-10-24T09:30:00Z\",\n  \"colony_status\": \"forte\",\n  \"queen_present\": true,\n  \"observations\": \"Colonie très active\"\n}" },
+        "url": "http://localhost:3000/api/hives/SN-CASA-001/inspections"
+      }
+    },
+    { "name": "GET /api/hives/:id/inspections (200)", "request": { "method": "GET", "url": "http://localhost:3000/api/hives/SN-CASA-001/inspections" } },
+    { "name": "Route inconnue (404 RFC 9457)", "request": { "method": "GET", "url": "http://localhost:3000/api/inconnue" } }
+  ]
+}
