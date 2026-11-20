@@ -1,12 +1,19 @@
-import { Router } from "express";
+import express from "express";
+import { requireRole } from "../../middlewares/auth.js";
+import { validate } from "../../middlewares/validate.js";
+import { hivesQuerySchema, paginationSchema, measureSchema, inspectionSchema } from "../../validators/schemas.js";
 
-export function createHivesRouter({ hivesController }) {
-  const router = Router();
-  router.get("/", hivesController.getAll);
-  router.get("/:id", hivesController.getById);
-  router.get("/:id/measures", hivesController.getMeasures);
-  router.post("/:id/measures", hivesController.postMeasure);
-  router.get("/:id/inspections", hivesController.getInspections);
-  router.post("/:id/inspections", hivesController.postInspection);
+export function createHivesRouter({ controller, requireAuth }) {
+  const router = express.Router();
+
+  router.use(requireAuth);
+
+  router.get("/", validate(hivesQuerySchema, "query"), controller.listHives);
+  router.get("/:id", controller.getHive);
+  router.get("/:id/measures", validate(paginationSchema, "query"), controller.listMeasures);
+  router.post("/:id/measures", requireRole("admin"), validate(measureSchema), controller.addMeasure);
+  router.get("/:id/inspections", controller.listInspections);
+  router.post("/:id/inspections", requireRole("apiculteur", "coordinateur"), validate(inspectionSchema), controller.addInspection);
+
   return router;
 }

@@ -216,3 +216,39 @@ Les données ne contiennent **aucune anomalie** : ni essaimage, ni chute de poid
 
 3. **Pourquoi l’effet est-il presque invisible avec le fichier d’une journée ?**
    Le fichier d'une journée ne contient que 4 800 lignes, ce qui est lu et traité en 5 ms seulement. Le blocage de la boucle d'événements est trop bref pour retarder significativement les requêtes `/ping` envoyées toutes les 10 ms.# node-tp
+
+## Résultats du TP 5 — Insertion en masse (`ligne` vs `lot`)
+
+* **Mode ligne à ligne (`ligne`)** : `<durée_ligne> ms`
+* **Mode par lot (`lot`)** : `<durée_lot> ms`
+
+### Réponses aux questions (TP 5)
+
+1. **Quel temps obtenez-vous dans chaque mode ? D'où vient l'écart ?**
+   L'insertion par lot de 1 000 lignes est nettement plus rapide que l'insertion ligne à ligne. En mode `ligne`, chaque mesure déclenche un aller-retour réseau avec PostgreSQL et une transaction implicite séparée (4 800 requêtes), alors que le mode `lot` regroupe les lignes dans quelques requêtes multi-valeurs au sein d'une transaction unique.
+
+2. **Si la 2 001e mesure provoquait une erreur, que resterait-il en base dans chaque mode ?**
+   En mode `ligne`, les 2 000 premières mesures déjà validées resteraient enregistrées en base. En mode `lot` (encapsulé dans un bloc `BEGIN` / `COMMIT` / `ROLLBACK`), toute la transaction est annulée en cas d'erreur, il ne resterait donc aucune mesure de cet import en base.
+
+3. **Pourquoi la transaction emprunte-t-elle une connexion avec `pool.connect()` au lieu d'appeler `pool.query()` ?**
+   Chaque appel à `pool.query()` peut utiliser une connexion différente du pool. Or, en PostgreSQL, les commandes `BEGIN`, `INSERT`, `COMMIT` et `ROLLBACK` d'une même transaction doivent impérativement être exécutées sur la même connexion physique.
+
+4. **Que se passerait-il si `client.release()` n'était pas dans le `finally`, et qu'une erreur survenait dix fois de suite ?**
+   La connexion empruntée ne serait jamais rendue au pool lors d'une erreur (fuite de connexions). Au bout de 10 erreurs (`DB_POOL_MAX=10`), toutes les connexions du pool seraient bloquées et toute nouvelle requête finirait en erreur après expiration du délai (`connectionTimeoutMillis`).
+
+---
+
+## Journal des requêtes interdites (TP 7)
+
+| Cas testé | Compte utilisé | Requête | Code attendu | Code obtenu |
+| :--- | :--- | :--- | :---: | :---: |
+| Ressource d'un autre site | `coord.sn-casa@queenbee.test` | `GET /api/hives?site_id=CI-AGBO` | 403 | 403 |
+| Rôle insuffisant | `api1.sn-casa@queenbee.test` | `POST /api/hives/SN-CASA-001/measures` | 403 | 403 |
+| Jeton expiré (`JWT_ACCESS_TTL=10s`) | `admin@queenbee.test` | `GET /api/hives` (après 10 s) | 401 | 401 |
+| Jeton falsifié | `admin@queenbee.test` | `GET /api/hives` (payload JWT modifié) | 401 | 401 |
+
+---
+
+## Règle de gestion des conflits (TP 8)
+
+La règle retenue est **« le serveur l'emporte »** (verrouillage optimiste via la colonne `version`)[cite: 37, 44]. Lorsqu'une synchronisation tente de modifier une inspection avec une version périmée, le serveur refuse l'écrasement, signale un statut `conflict` et renvoie l'état actuel (`current`) enregistré en base[cite: 42, 43]. Cela évite de perdre silencieusement des observations terrain plus récentes saisies depuis un autre appareil[cite: 44].

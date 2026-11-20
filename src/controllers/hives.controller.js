@@ -1,49 +1,29 @@
 export function createHivesController({ hivesService, measuresService, inspectionsService }) {
   return {
-    async getAll(req, res, next) {
-      try {
-        res.status(200).json(await hivesService.listHives(req.query.site_id));
-      } catch (err) {
-        next(err);
-      }
+    async listHives(req, res) {
+      res.json(await hivesService.listHives(req.user, req.validated));
     },
-    async getById(req, res, next) {
-      try {
-        res.status(200).json(await hivesService.getHiveById(req.params.id));
-      } catch (err) {
-        next(err);
-      }
+
+    async getHive(req, res) {
+      res.json(await hivesService.getHive(req.user, req.params.id));
     },
-    async getMeasures(req, res, next) {
-      try {
-        res.status(200).json(await measuresService.listMeasures(req.params.id, {
-          limit: req.query.limit ?? 50,
-          offset: req.query.offset ?? 0,
-        }));
-      } catch (err) {
-        next(err);
-      }
+
+    async listMeasures(req, res) {
+      res.json(await measuresService.listMeasures(req.user, req.params.id, req.validated));
     },
-    async postMeasure(req, res, next) {
-      try {
-        res.status(201).json(await measuresService.addMeasure(req.params.id, req.body));
-      } catch (err) {
-        next(err);
-      }
+
+    async addMeasure(req, res) {
+      const { measure, created } = await measuresService.addMeasure(req.user, req.params.id, req.validated);
+      res.status(created ? 201 : 200).json(measure);
     },
-    async getInspections(req, res, next) {
-      try {
-        res.status(200).json(await inspectionsService.listInspections(req.params.id));
-      } catch (err) {
-        next(err);
-      }
+
+    async listInspections(req, res) {
+      res.json(await inspectionsService.listInspections(req.user, req.params.id));
     },
-    async postInspection(req, res, next) {
-      try {
-        res.status(201).json(await inspectionsService.addInspection(req.params.id, req.body));
-      } catch (err) {
-        next(err);
-      }
+
+    async addInspection(req, res) {
+      const { inspection, created } = await inspectionsService.addInspection(req.user, req.params.id, req.validated);
+      res.status(created ? 201 : 200).json(inspection);
     },
   };
 }

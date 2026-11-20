@@ -1,15 +1,20 @@
 import { config } from "./config.js";
 import { createApp } from "./app.js";
-import { createMemoryHivesRepository } from "./repositories/memory/hives.repository.js";
-import { createMemoryMeasuresRepository } from "./repositories/memory/measures.repository.js";
-import { createMemoryInspectionsRepository } from "./repositories/memory/inspections.repository.js";
+import { createPostgresRepositories } from "./repositories/postgres/index.js";
+import { createPool } from "./db.js";
 
-const hivesRepository = createMemoryHivesRepository();
-const measuresRepository = createMemoryMeasuresRepository();
-const inspectionsRepository = createMemoryInspectionsRepository();
+const pool = createPool();
 
-const app = createApp({ hivesRepository, measuresRepository, inspectionsRepository });
+try {
+  await pool.query("SELECT 1");
+} catch (err) {
+  console.error(`Impossible de joindre PostgreSQL sur ${config.db.host}:${config.db.port} : ${err.message || err.code}`);
+  process.exit(1);
+}
+
+const repositories = createPostgresRepositories(pool);
+const app = createApp(repositories);
 
 app.listen(config.port, () => {
-  console.log(`Serveur Queen Bee (${config.nodeEnv}) sur http://localhost:${config.port}`);
+  console.log(`API Queen Bee sur http://localhost:${config.port}`);
 });
